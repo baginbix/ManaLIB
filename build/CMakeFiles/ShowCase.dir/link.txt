@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/ShowCase.dir/link.d CMakeFiles/ShowCase.dir/src/main.cpp.o -o ShowCase  -lpthread

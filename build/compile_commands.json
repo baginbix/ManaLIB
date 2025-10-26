@@ -1,0 +1,8 @@
+[
+{
+  "directory": "/home/baginbix/Documents/Programming/CPP/ShowCase/build",
+  "command": "/usr/bin/c++   -std=gnu++20 -O3 -march=native -o CMakeFiles/ShowCase.dir/src/main.cpp.o -c /home/baginbix/Documents/Programming/CPP/ShowCase/src/main.cpp",
+  "file": "/home/baginbix/Documents/Programming/CPP/ShowCase/src/main.cpp",
+  "output": "CMakeFiles/ShowCase.dir/src/main.cpp.o"
+}
+]

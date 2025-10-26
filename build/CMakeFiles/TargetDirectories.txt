@@ -1,0 +1,3 @@
+/home/baginbix/Documents/Programming/CPP/ShowCase/build/CMakeFiles/ShowCase.dir
+/home/baginbix/Documents/Programming/CPP/ShowCase/build/CMakeFiles/edit_cache.dir
+/home/baginbix/Documents/Programming/CPP/ShowCase/build/CMakeFiles/rebuild_cache.dir

@@ -1,8 +1,10 @@
 #include <cstddef>
 #include <iostream>
 #include <memory>
+#include <ostream>
 #include <thread>
 #include "mutex_buffer_v1.hpp"
+#include "my_unique_ptr.hpp"
 void test_single_thread_perf() {
     constexpr size_t CAP = 1024;
     constexpr size_t OPS  = 10'000'000; // ten million heroic operations
@@ -20,8 +22,10 @@ void test_single_thread_perf() {
     std::cout << "Single-thread: " << (OPS / seconds) << " ops/sec\n";
 }
 class Me{
+
 public:
-    int hp;
+    Me(int hp):value(hp){}
+    int value;
 };
 
 void test_two_thread_perf() {
@@ -66,11 +70,7 @@ void test_two_thread_perf() {
               << (OPS / seconds) << " ops/sec\n";
 }
 
-
+void m(Me* me){delete me;};
 int main(){
-    test_single_thread_perf();
-    test_two_thread_perf();
 
-    std::unique_ptr<Me> ptr = std::make_unique<Me>();
-    ptr->hp = 10;
 }

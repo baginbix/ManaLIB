@@ -26,5 +26,9 @@ add_executable(${PROJECT_NAME} src/main.cpp src/mutex_buffer_v1.hpp src/my_uniqu
 
 target_link_libraries(${PROJECT_NAME} PRIVATE pthread)
 
-add_executable(tests tests/test_unique_ptr.cpp tests/test_shared_ptr.cpp)
+add_executable(tests
+    tests/test_unique_ptr.cpp
+    tests/test_shared_ptr.cpp
+    tests/test_deque.cpp
+)
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)

@@ -22,7 +22,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(Catch2)
 
 
-add_executable(${PROJECT_NAME} src/main.cpp src/mutex_buffer_v1.hpp src/my_unique_ptr.hpp)
+add_executable(${PROJECT_NAME} src/main.cpp src/mutex_buffer_v1.hpp src/my_unique_ptr.hpp src/vector.hpp src/my_shared_ptr.hpp)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE pthread)
 

@@ -1,10 +1,12 @@
 #include <cstddef>
 #include <iostream>
 #include <ostream>
+#include <print>
+#include <string>
 #include <thread>
 #include "mutex_buffer_v1.hpp"
 #include "my_unique_ptr.hpp"
-#include "deque.hpp"
+#include "vector.hpp"
 void test_single_thread_perf() {
     constexpr size_t CAP = 1024;
     constexpr size_t OPS  = 10'000'000; // ten million heroic operations
@@ -72,8 +74,7 @@ void test_two_thread_perf() {
 
 void m(Me* me){delete me;};
 int main(){
-    baginbix::Deque<int> deque;
-    deque.push_back(1);
-    deque.push_back(2);
-    deque.push_back(3);
+    baginbix::Vector<std::string> vec;
+    for(int i = 0; i < 11; ++i)
+        vec.push_back("fjkdsfkldaskfdkf");
 }

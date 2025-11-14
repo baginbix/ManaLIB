@@ -30,5 +30,6 @@ add_executable(tests
     tests/test_unique_ptr.cpp
     tests/test_shared_ptr.cpp
     tests/test_deque.cpp
+    tests/test_vector.cpp
 )
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)

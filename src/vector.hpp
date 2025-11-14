@@ -1,5 +1,8 @@
 
+#include <algorithm>
 #include <cstddef>
+#include <cstring>
+#include <type_traits>
 
 namespace baginbix{
     template<typename T>
@@ -41,7 +44,7 @@ namespace baginbix{
         }
 
         ~Vector(){
-
+            destroy_non_trivial_types();
             ::operator delete(data);
         }
 
@@ -50,16 +53,11 @@ namespace baginbix{
             num_items = other.num_items;
             cap = other.cap;
 
-            if constexpr (!std::is_nothrow_destructible_v<T>) {
-                for (int i = 0; i < num_items; ++i) {
-                    data[i].~T();
-                }
-            }
+            destroy_non_trivial_types();
             ::operator delete(data);
 
             data = static_cast<T*>(::operator new(cap * sizeof(T)));
             for (int i = 0; i < num_items; ++i) {
-                data[i] = other.data[i];
                 new (&data[i]) T(other.data[i]);
             }
 
@@ -68,7 +66,7 @@ namespace baginbix{
         Vector& operator=(Vector<T>&& other){
             if(this == &other) return *this;
 
-            ~Vector();
+            this->~Vector();
 
             num_items = other.num_items;
             cap = other.cap;
@@ -101,12 +99,13 @@ namespace baginbix{
             if(num_items == cap){
                 resize(cap * 2);
             }
-            new(&data[i]) T(value)
+            new(&data[num_items]) T(value);
             ++num_items;
         }
         void pop_back(){
+            if(num_items == 0) return;
             --num_items;
-            if constexpr (std::is_nothrow_destructible_v<T>) {
+            if constexpr (!std::is_trivially_destructible_v<T>) {
                 data[num_items].~T();
             }
             if (cap > 16 && num_items * 4 < cap) {
@@ -115,7 +114,7 @@ namespace baginbix{
         }
 
         void insert(size_t index, const T& value) {
-            if (index > num_items) return; 
+            if (index > num_items) return;
             if (num_items == cap) resize(cap * 2);
             std::move_backward(data + index, data + num_items, data + num_items + 1);
             data[index] = value;
@@ -126,7 +125,7 @@ namespace baginbix{
             if (index >= num_items) return;
             std::move(data + index + 1, data + num_items, data + index);
             --num_items;
-            if constexpr (!std::is_trivially_constructible_v<T>) {
+            if constexpr (!std::is_trivially_destructible_v<T>) {
                 data[num_items].~T();
             }
         }
@@ -145,11 +144,7 @@ namespace baginbix{
         }
 
         void clear() {
-            if constexpr (!std::is_trivially_destructible_v<T>) {
-                for (size_t i = 0; i < num_items; ++i) {
-                    data[i].~T();
-                }
-            }
+            destroy_non_trivial_types();
             num_items = 0;
         }
 
@@ -162,8 +157,8 @@ namespace baginbix{
             ++num_items;
         }
 
-        T* begin() noexcept { 
-            return data; 
+        T* begin() noexcept {
+            return data;
         }
 
         T* end() noexcept {
@@ -240,15 +235,18 @@ namespace baginbix{
                 for (size_t i = 0; i < num_items; ++i)
                     new(&new_data[i]) T(std::move(data[i]));
             }
-
-            if constexpr (!std::is_trivially_destructible_v<T>) {
-                for (size_t i = 0; i < num_items; ++i)
-                    data[i].~T();
-            }
+            destroy_non_trivial_types();
 
             ::operator delete(data);
             data = new_data;
             cap = new_cap;
+        }
+        inline constexpr void destroy_non_trivial_types(){
+            if constexpr (!std::is_trivially_destructible_v<T>){
+                for (int i = 0; i < num_items; ++i) {
+                    data[i].~T();
+                }
+            }
         }
     };
 

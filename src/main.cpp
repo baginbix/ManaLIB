@@ -4,6 +4,7 @@
 #include <print>
 #include <string>
 #include <thread>
+#include <vector>
 #include "mutex_buffer_v1.hpp"
 #include "my_unique_ptr.hpp"
 #include "vector.hpp"
@@ -77,4 +78,7 @@ int main(){
     baginbix::Vector<std::string> vec;
     for(int i = 0; i < 11; ++i)
         vec.push_back("fjkdsfkldaskfdkf");
+
+    std::vector<int> v;
+    v.resize(10);
 }

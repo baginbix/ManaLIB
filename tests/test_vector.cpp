@@ -1,6 +1,6 @@
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch_test_macros.hpp>
-#include "../src/vector.hpp" 
+#include "../src/vector.hpp"
 
 using namespace baginbix;
 
@@ -142,4 +142,80 @@ TEST_CASE("Clear resets size but not capacity") {
     v.clear();
     REQUIRE(v.size() == 0);
     REQUIRE(v.capacity() == before);
+}
+
+TEST_CASE("Vector empty state and boundary stress") {
+    Vector<int> v;
+
+    // Test pop_back on empty vector (should do nothing, not crash)
+    v.pop_back();
+    REQUIRE(v.size() == 0);
+
+    // Test single element
+    v.push_back(10);
+    REQUIRE(v[0] == 10);
+    REQUIRE(v.size() == 1);
+
+    // Test pop_back to empty
+    v.pop_back();
+    REQUIRE(v.size() == 0);
+
+    // Test push_back after pop_back to empty (re-use of memory)
+    v.push_back(20);
+    REQUIRE(v[0] == 20);
+}
+
+TEST_CASE("Move semantics during resize are used correctly") {
+    Tracker::reset();
+    {
+        Vector<Tracker> v;
+        // Assume initial capacity is small, e.g., 10 (or force small for test)
+        // Insert enough to force a resize (e.g., 11 if capacity is 10)
+
+        for (int i = 0; i < 10; ++i) {
+            v.emplace_back(i); // 10 constructions
+        }
+
+        // Force Reallocation (This will trigger moves)
+        v.emplace_back(10);
+
+        // 1. Initial 10 elements constructed (10 constructions)
+        // 2. The 11th element constructed in place (1 construction)
+        // 3. The original 10 elements should have been MOVED, not copied (10 moves)
+        // 4. The original 10 elements must be destructed after the move (10 destructions)
+
+        REQUIRE(Tracker::constructions == 11);
+        REQUIRE(Tracker::copies == 0); // Crucial: must be zero copies
+        REQUIRE(Tracker::moves == 10);
+        REQUIRE(Tracker::destructions == 10); // Destructions of the moved-from objects
+
+        REQUIRE(v.size() == 11);
+        REQUIRE(v[0].value == 0);
+        REQUIRE(v[10].value == 10);
+        // Ensure moved-from objects were nulled/reset (optional but good practice)
+        REQUIRE(v[0].value != -1);
+    }
+    // Check total cleanup
+    REQUIRE(Tracker::destructions == Tracker::constructions + Tracker::moves);
+}
+
+TEST_CASE("Vector iterators and range-based loop functionality") {
+    Vector<int> v;
+    for (int i = 10; i < 15; ++i) {
+        v.push_back(i);
+    }
+
+    // Test manual iteration (read-only)
+    int sum = 0;
+    for (auto it = v.begin(); it != v.end(); ++it) {
+        sum += *it;
+    }
+    REQUIRE(sum == 60); // 10 + 11 + 12 + 13 + 14 = 60
+
+    // Test modification via range-based loop (requires non-const T& operator*)
+    for (int& val : v) {
+        val *= 2;
+    }
+    REQUIRE(v[0] == 20);
+    REQUIRE(v[4] == 28);
 }

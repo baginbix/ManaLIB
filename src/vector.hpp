@@ -11,12 +11,12 @@ namespace baginbix{
         Vector(): cap(10), num_items(0) {
             data = static_cast<T*>(::operator new(cap * sizeof(T)));
         }
-        Vector(const int capacity):num_items(0) {
+        explicit Vector(const size_t capacity):num_items(0){
             cap = capacity > 0 ? capacity : 10;
             data = static_cast<T*>(::operator new(cap * sizeof(T)));
         }
         Vector(std::initializer_list<T> init) {
-            cap = init.size();
+            cap = init.size() > 10 ? init.size() : 10;
             data = data = static_cast<T*>(::operator new(cap * sizeof(T)));
             num_items = 0;
 
@@ -49,33 +49,14 @@ namespace baginbix{
         }
 
         Vector& operator=(const Vector<T>& other) noexcept{
-            if(this == &other) return *this;
-            num_items = other.num_items;
-            cap = other.cap;
-
-            destroy_non_trivial_types();
-            ::operator delete(data);
-
-            data = static_cast<T*>(::operator new(cap * sizeof(T)));
-            for (int i = 0; i < num_items; ++i) {
-                new (&data[i]) T(other.data[i]);
-            }
+            Vector tmp(other);
+            swap(tmp);
 
             return *this;
         }
-        Vector& operator=(Vector<T>&& other){
-            if(this == &other) return *this;
-
-            this->~Vector();
-
-            num_items = other.num_items;
-            cap = other.cap;
-            data = other.data;
-
-            other.data = nullptr;
-            other.num_items = 0;
-            other.cap = 0;
-
+        Vector& operator=(Vector<T>&& other)  noexcept{
+            Vector tmp(std::move(other));
+            swap(tmp);
             return *this;
         }
 
@@ -108,15 +89,18 @@ namespace baginbix{
             if constexpr (!std::is_trivially_destructible_v<T>) {
                 data[num_items].~T();
             }
-            if (cap > 16 && num_items * 4 < cap) {
-                resize(cap / 2);
-            }
         }
 
         void insert(size_t index, const T& value) {
-            if (index > num_items) return;
+            assert(index <= num_items);
+            T copy(value);
+            if (index == num_items) {
+                emplace_back(std::move(copy));
+                return;
+            }
             if (num_items == cap) resize(cap * 2);
-            std::move_backward(data + index, data + num_items, data + num_items + 1);
+            ::new (data+ num_items) T(std::move(data[num_items-1]));
+            std::move_backward(data + index, data + num_items-1, data + num_items);
             data[index] = value;
             ++num_items;
         }
@@ -225,15 +209,16 @@ namespace baginbix{
         size_t cap;
 
         void resize(size_t new_cap){
-            if (new_cap == cap) return;
+            if (new_cap == cap ) return;
 
             T* new_data = static_cast<T*>(::operator new(new_cap * sizeof(T)));
             if constexpr (std::is_trivially_copyable_v<T>) {
+                assert(new_data != nullptr);
                 std::memcpy(new_data, data, num_items*sizeof(T));
             }
             else {
                 for (size_t i = 0; i < num_items; ++i)
-                    new(&new_data[i]) T(std::move(data[i]));
+                    ::new(&new_data[i]) T(std::move_if_noexcept(data[i]));
             }
             destroy_non_trivial_types();
 
@@ -247,6 +232,11 @@ namespace baginbix{
                     data[i].~T();
                 }
             }
+        }
+        void swap(Vector& o) noexcept{
+            std::swap(data, o.data);
+            std::swap(num_items, o.num_items);
+            std::swap(cap, o.cap);
         }
     };
 

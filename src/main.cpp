@@ -5,9 +5,10 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include "mutex_buffer_v1.hpp"
 #include "my_unique_ptr.hpp"
 #include "vector.hpp"
+#ifdef __linux__
+#include "mutex_buffer_v1.hpp"
 void test_single_thread_perf() {
     constexpr size_t CAP = 1024;
     constexpr size_t OPS  = 10'000'000; // ten million heroic operations
@@ -24,12 +25,7 @@ void test_single_thread_perf() {
     double seconds = std::chrono::duration<double>(end - start).count();
     std::cout << "Single-thread: " << (OPS / seconds) << " ops/sec\n";
 }
-class Me{
 
-public:
-    Me(int hp):value(hp){}
-    int value;
-};
 
 void test_two_thread_perf() {
     constexpr size_t CAP = 1024;
@@ -72,6 +68,15 @@ void test_two_thread_perf() {
     std::cout << "Two-thread SPSC: "
               << (OPS / seconds) << " ops/sec\n";
 }
+#endif
+
+class Me{
+
+public:
+    Me(int hp):value(hp){}
+    int value;
+};
+
 
 void m(Me* me){delete me;};
 int main(){

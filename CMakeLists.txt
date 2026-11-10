@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 project(ShowCase)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-add_compile_options(-O3 -march=native)
+add_compile_options(-o3 -march=native)
 
 # Enable sanitizers for Debug builds
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -22,14 +22,21 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(Catch2)
 
 
-add_executable(${PROJECT_NAME} src/main.cpp src/mutex_buffer_v1.hpp src/my_unique_ptr.hpp src/vector.hpp src/my_shared_ptr.hpp)
+add_executable(${PROJECT_NAME} 
+    src/main.cpp 
+    src/mutex_buffer_v1.hpp 
+    src/my_unique_ptr.hpp 
+    src/vector.hpp 
+    src/my_shared_ptr.hpp
+)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE pthread)
+if(NOT WIN32)
+    target_link_libraries(${PROJECT_NAME} PRIVATE pthread)
+endif()
 
 add_executable(tests
-    tests/test_unique_ptr.cpp
-    tests/test_shared_ptr.cpp
-    tests/test_deque.cpp
+
     tests/test_vector.cpp
+    tests/test_unique_ptr.cpp
 )
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)

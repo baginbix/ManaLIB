@@ -1,3 +1,4 @@
+#ifdef __linux__
 #include <atomic>
 #include <cstddef>
 #include <cstdlib>
@@ -183,3 +184,5 @@ private:
     }
     std::atomic<int> state;
 };
+
+#endif

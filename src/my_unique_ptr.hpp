@@ -1,146 +1,117 @@
-
+#pragma once
 #include <cassert>
 #include <cstddef>
 #include <type_traits>
 #include <utility>
-template<typename Type>
-struct DefaultDeleter{
-    void operator()(Type* ptr) const {delete ptr;}
-};
 
-template<typename Type, typename Deleter = DefaultDeleter<Type>>
-class MyUniquePtr{
-static_assert(std::is_invocable<Deleter, Type*>::value, "Deleter is not invocable");
-public:
-    MyUniquePtr(){
-        ptr = nullptr;
-    }
-    MyUniquePtr(Type* obj): ptr(obj), deleter(){}
-    MyUniquePtr(Type* obj, Deleter deleter)
-    :ptr(obj), deleter(deleter)
-    {}
+namespace baginbix {
+    template<typename Type>
+    struct DefaultDeleter {
+        void operator()(Type* ptr) const { delete ptr; }
+    };
+    template<typename Type>
+    struct DefaultDeleter<Type[]> {
+        void operator()(Type* ptr) const { delete[]  ptr; }
+    };
 
-    MyUniquePtr(MyUniquePtr&& obj)
-    : ptr(obj.ptr), deleter(std::move(obj.deleter)){
-        obj.ptr = nullptr;
-    }
-    MyUniquePtr& operator= (MyUniquePtr&& other) noexcept{
-        if(&other != this) {
-            swap(other);
+    template<typename Type, typename Deleter = DefaultDeleter<Type>>
+    class UniquePointer {
+        static_assert(std::is_invocable_v<Deleter&, Type*>, "Deleter is not invocable");
+    public:
+        UniquePointer() noexcept
+            : ptr(nullptr), deleter(){
         }
-        return *this;
-    }
+        explicit UniquePointer(Type* obj) noexcept 
+            : ptr(obj), deleter()  {}
+        UniquePointer(Type* obj, Deleter d) noexcept(std::is_nothrow_move_constructible_v<Deleter>)
+            :ptr(obj), deleter(std::move(d))
+        {
+        }
+        UniquePointer(UniquePointer&& obj) noexcept
+            : ptr(obj.ptr), deleter(std::move(obj.deleter)) {
+            obj.ptr = nullptr;
+        }
+        UniquePointer(const UniquePointer&) = delete;
+        UniquePointer(UniquePointer&) = delete;
 
-    MyUniquePtr(MyUniquePtr& obj) = delete;
+        ~UniquePointer() {
+            if (ptr) {
+                deleter(ptr);
+            }
 
-    MyUniquePtr& operator= (const MyUniquePtr& other) = delete;
-
-
-
-    ~MyUniquePtr(){
-        if(ptr){
-            deleter(ptr);
         }
 
-    }
-    Type& operator* () const{
-        return *ptr;
-    }
-    Type* operator->() const{
-        return ptr;
-    }
-
-    operator bool() const{return ptr != nullptr;}
-
-    Type* release(){
-        Type* p = ptr;
-        ptr = nullptr;
-        return p;
-    }
-    void reset(Type* newptr){
-        if(newptr == ptr){return;}
-        deleter(ptr);
-        ptr = newptr;
-    }
-
-    void swap(MyUniquePtr& other){
-        using std::swap;
-        swap(ptr, other.ptr);
-        swap(deleter, other.deleter);
-    }
-    [[nodiscard]]
-    Type* get() const{
-        return ptr;
-    }
-private:
-    Type* ptr;
-    Deleter deleter;
-};
-template<typename Type>
-struct DefaultDeleter<Type[]>{
-    void operator()(Type* ptr) const {delete[]  ptr;}
-};
-template<typename Type, typename Deleter>
-class MyUniquePtr<Type[], Deleter>{
-    static_assert(std::is_invocable<Deleter, Type*>::value, "Deleter must be callable");
-public:
-    MyUniquePtr() noexcept : ptr(nullptr), deleter(){
-    }
-    MyUniquePtr(Type* obj) noexcept:ptr(obj), deleter(){}
-    ~MyUniquePtr(){
-        if(ptr){
-            deleter(ptr);
+        explicit operator bool() const noexcept {
+            return ptr;
         }
-    }
-    MyUniquePtr(Type* obj, Deleter del) noexcept
-        :ptr(obj), deleter(del){}
 
-
-    MyUniquePtr(MyUniquePtr&& other) noexcept
-        : ptr(other.ptr), deleter(std::move(other.deleter)) {
-        other.ptr = nullptr;
-    }
-
-    MyUniquePtr(const MyUniquePtr& obj) = delete;
-
-    operator bool() const{
-        return ptr;
-    }
-    MyUniquePtr& operator= (const MyUniquePtr& other) = delete;
-
-    MyUniquePtr& operator=(MyUniquePtr&& other) noexcept{
-        if(this != &other){
-            swap(other);
+        Type& operator* () const noexcept requires(!std::is_array_v<Type>){
+            assert(ptr);
+            return *ptr;
         }
-        return *this;
-    }
-    Type& operator[](std::size_t index){
-        return ptr[index];
-    }
-    const Type& operator[](std::size_t index) const{return ptr[index];}
+        Type* operator->() const noexcept requires(!std::is_array_v<Type>){
+            return ptr;
+        }
 
-    void swap(MyUniquePtr& other) noexcept{
-        using std::swap;
-        swap(ptr, other.ptr);
-        swap(deleter, other.deleter);
-    }
+        Type& operator[](std::size_t index) noexcept requires(std::is_array_v<Type>){
+            return ptr[index];
+        }
+        const Type& operator[](std::size_t index) const noexcept requires(std::is_array_v<Type>) {
+            return ptr[index]; 
+        }
 
-    Type* release() noexcept{
-        auto oldPtr = ptr;
-        ptr = nullptr;
-        return oldPtr;
-    }
+        friend bool operator==(const UniquePointer& a, const UniquePointer& b) noexcept {
+            return a.get() == b.get();
+        }
+        friend bool operator==(const UniquePointer& a, std::nullptr_t) noexcept {
+            return a.get() == nullptr;
+        }
+        friend bool operator==(std::nullptr_t, const UniquePointer& a) noexcept {
+            return  a.get() == nullptr;
+        }
 
-    void reset(Type* newPtr) noexcept{
-        if(newPtr == ptr) return;
-        deleter(ptr);
-        ptr = newPtr;
-    }
-    [[nodiscard]]
-    Type* get() const{
-        return ptr;
-    }
-private:
-    Type* ptr;
-    Deleter deleter;
-};
+        void swap(UniquePointer& other) noexcept {
+            using std::swap;
+            swap(ptr, other.ptr);
+            swap(deleter, other.deleter);
+        }
+
+        Type* release() noexcept {
+            auto oldPtr = ptr;
+            ptr = nullptr;
+            return oldPtr;
+        }
+
+        void reset(Type* newPtr = nullptr) noexcept {
+            if (newPtr == ptr) return;
+            Type* old = ptr;
+            ptr = newPtr;
+            if (old) {
+                deleter(old);
+            }
+        }
+        [[nodiscard]]
+        Type* get() const noexcept {
+            return ptr;
+        }
+
+        [[nodiscard]]
+        Deleter& get_deleter() {
+            return deleter;
+        }
+
+        [[nodiscard]]
+        const Deleter& get_deleter() {
+            return deleter;
+        }
+    private:
+        Type* ptr;
+
+#if defined(_MSC_VER) && !defined(__clang__)
+        [[msvc::no_unique_address]] Deleter deleter;
+#else
+
+        [[no_unique_address]] Deleter deleter;
+#endif
+    };
+}
